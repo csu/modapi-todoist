@@ -26,10 +26,8 @@ def backup_completed_tasks():
     while (offset == 0) or result['items']:
         url = '%s&limit=%s&offset=%s' % (base_url, limit, offset)
         result = requests.get(url).json()
-
         items += result['items']
         projects = merge_dicts(projects, result['projects'])
-
         offset += limit
 
     uploader.quick_upload({'items': items, 'projects': projects},
