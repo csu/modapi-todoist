@@ -38,3 +38,27 @@ def backup_completed_tasks():
         'items': len(items),
         'projects': len(projects)
     })
+
+def get_tasks_completed_today():
+    url = 'http://api.todoist.com/API/getProductivityStats?token=%s' % secrets.TODOIST_AUTH_TOKEN
+    result = requests.get(url).json()
+    return result['days_items'][0]['total_completed']
+
+@module.route('/today/dashboard')
+@module.route('/today/dashboard/')
+@require_secret
+def tasks_completed_today_dashboard():
+    count = get_tasks_completed_today()
+
+    colors = ['#EBAD99', '#FFCC66', '#CCFF66']
+    color = colors[0]
+    if count >= 3:
+        color = colors[1]
+    if count >= 5:
+        color = colors[2]
+
+    return jsonify({'items': [{
+        'title': 'Tasks Completed',
+        'body': count,
+        'color': color
+    }]})
