@@ -50,7 +50,7 @@ def get_tasks_completed_today():
 def tasks_completed_today_dashboard():
     count = get_tasks_completed_today()
 
-    colors = ['#EBAD99', '#FFCC66', '#CCFF66']
+    colors = ['#EBAD99', '#FFCC66', '#CAE2B0']
     color = colors[0]
     if count >= 3:
         color = colors[1]
