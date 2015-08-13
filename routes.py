@@ -1,3 +1,4 @@
+from datetime import date
 from flask import Blueprint, jsonify
 import requests
 
@@ -39,7 +40,7 @@ def backup_completed_tasks():
         'projects': len(projects)
     })
 
-def get_tasks_completed_today():
+def get_number_tasks_completed_today():
     url = 'http://api.todoist.com/API/getProductivityStats?token=%s' % secrets.TODOIST_AUTH_TOKEN
     result = requests.get(url).json()
     return result['days_items'][0]['total_completed']
@@ -48,7 +49,7 @@ def get_tasks_completed_today():
 @module.route('/today/dashboard/')
 @require_secret
 def tasks_completed_today_dashboard():
-    count = get_tasks_completed_today()
+    count = get_number_tasks_completed_today()
 
     colors = ['#EBAD99', '#FFCC66', '#CAE2B0']
     color = colors[0]
@@ -62,3 +63,19 @@ def tasks_completed_today_dashboard():
         'body': count,
         'color': color
     }]})
+
+def get_tasks_completed_today():
+    today = date.today()
+    url = 'https://todoist.com/API/v6/get_all_completed_items?token=%s&to_date=%sT00:00&from_date=%sT23:59&limit=50' % (secrets.TODOIST_AUTH_TOKEN, today, today)
+    result = requests.get(url).json()
+    return result['items']
+
+@module.route('/today')
+@module.route('/today/')
+@require_secret
+def tasks_completed_today_route():
+    tasks_completed = get_tasks_completed_today()
+    return jsonify({
+        'count': len(tasks_completed),
+        'items': tasks_completed
+    })
