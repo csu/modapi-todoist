@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from flask import Blueprint, jsonify, request
 import requests
 
-from common import require_secret
+from common import require_secret, dashboard_item
 from config import config
 import secrets
 
@@ -81,14 +81,29 @@ def tasks_completed_today_route():
         'items': tasks_completed
     })
 
+def query_today_compelted(query):
+    tasks_completed = get_tasks_completed_today()
+    return any(s['content'] == query for s in tasks_completed)
+
 @module.route('/today/query')
 @module.route('/today/query/')
 @require_secret
 def query_completed_tasks():
     query = request.args.get('query')
-    tasks_completed = get_tasks_completed_today()
-    found = any(s['content'] == query for s in tasks_completed)
     return jsonify({
         'query': query,
-        'result': found
+        'result': query_today_compelted(query)
+    })
+
+@module.route('/today/query/dashboard')
+@module.route('/today/query/dashboard/')
+@require_secret
+def query_completed_tasks_dashboard():
+    title = request.args.get('title')
+    query = request.args.get('query')
+    complete = query_today_compelted(query)
+    return dashboard_item({
+        'title': title if title else query,
+        'body': 'Complete' if complete else 'Incomplete',
+        'color': '#CAE2B0' if complete else '#FFCC80'
     })
