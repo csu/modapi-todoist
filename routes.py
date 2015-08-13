@@ -1,5 +1,5 @@
-from datetime import date
-from flask import Blueprint, jsonify
+from datetime import date, timedelta
+from flask import Blueprint, jsonify, request
 import requests
 
 from common import require_secret
@@ -66,7 +66,8 @@ def tasks_completed_today_dashboard():
 
 def get_tasks_completed_today():
     today = date.today()
-    url = 'https://todoist.com/API/v6/get_all_completed_items?token=%s&to_date=%sT00:00&from_date=%sT23:59&limit=50' % (secrets.TODOIST_AUTH_TOKEN, today, today)
+    tomorrow = today + timedelta(days=1)
+    url = 'https://todoist.com/API/v6/get_all_completed_items?token=%s&to_date=%sT07:00&from_date=%sT07:00&limit=50' % (secrets.TODOIST_AUTH_TOKEN, today, tomorrow)
     result = requests.get(url).json()
     return result['items']
 
@@ -78,4 +79,16 @@ def tasks_completed_today_route():
     return jsonify({
         'count': len(tasks_completed),
         'items': tasks_completed
+    })
+
+@module.route('/today/query')
+@module.route('/today/query/')
+@require_secret
+def query_completed_tasks():
+    query = request.args.get('query')
+    tasks_completed = get_tasks_completed_today()
+    found = any(s['content'] == query for s in tasks_completed)
+    return jsonify({
+        'query': query,
+        'result': found
     })
