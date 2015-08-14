@@ -81,10 +81,6 @@ def tasks_completed_today_route():
         'items': tasks_completed
     })
 
-def query_today_compelted(query):
-    tasks_completed = get_tasks_completed_today()
-    return any(s['content'] == query for s in tasks_completed)
-
 @module.route('/today/query')
 @module.route('/today/query/')
 @require_secret
@@ -95,8 +91,8 @@ def query_completed_tasks():
         'result': query_today_compelted(query)
     })
 
-def create_dashboard_item_for_query(query, title=None):
-    complete = query_today_compelted(query)
+def create_dashboard_item_for_query(tasks_completed, query, title=None):
+    complete = any(s['content'] == query for s in tasks_completed)
     return {
         'title': title if title else query,
         'body': 'Complete' if complete else 'Incomplete',
@@ -108,6 +104,7 @@ def create_dashboard_item_for_query(query, title=None):
 @require_secret
 def query_completed_tasks_dashboard():
     queries = request.args.getlist('query')
+    tasks_completed = get_tasks_completed_today()
     items = []
     for query in queries:
         title = None
@@ -115,5 +112,5 @@ def query_completed_tasks_dashboard():
             query_parts = query.split('--')
             query = query_parts[0]
             title = query_parts[1]
-        items.append(create_dashboard_item_for_query(query, title=title))
+        items.append(create_dashboard_item_for_query(tasks_completed, query, title=title))
     return dashboard_item(items)
