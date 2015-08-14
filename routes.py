@@ -95,15 +95,25 @@ def query_completed_tasks():
         'result': query_today_compelted(query)
     })
 
+def create_dashboard_item_for_query(query, title=None):
+    complete = query_today_compelted(query)
+    return {
+        'title': title if title else query,
+        'body': 'Complete' if complete else 'Incomplete',
+        'color': '#CAE2B0' if complete else '#FFCC80'
+    }
+
 @module.route('/today/query/dashboard')
 @module.route('/today/query/dashboard/')
 @require_secret
 def query_completed_tasks_dashboard():
-    title = request.args.get('title')
-    query = request.args.get('query')
-    complete = query_today_compelted(query)
-    return dashboard_item({
-        'title': title if title else query,
-        'body': 'Complete' if complete else 'Incomplete',
-        'color': '#CAE2B0' if complete else '#FFCC80'
-    })
+    queries = request.args.getlist('query')
+    items = []
+    for query in queries:
+        title = None
+        if '--' in query:
+            query_parts = query.split('--')
+            query = query_parts[0]
+            title = query_parts[1]
+        items.append(create_dashboard_item_for_query(query, title=title))
+    return dashboard_item(items)
