@@ -1,4 +1,6 @@
 from datetime import date, timedelta
+
+import arrow
 from flask import Blueprint, jsonify, request
 import requests
 
@@ -25,6 +27,8 @@ def backup_completed_tasks():
     limit = 50
     offset = 0
     while (offset == 0) or result['items']:
+        # TODO: refactor this to use get_completed
+        # fairly simple, but I don't want to risk breaking things for now
         url = '%s&limit=%s&offset=%s' % (base_url, limit, offset)
         result = requests.get(url).json()
         items += result['items']
@@ -64,12 +68,20 @@ def tasks_completed_today_dashboard():
         'color': color
     }]})
 
+def get_completed(limit=50, offset=0):
+    url = 'https://todoist.com/API/v6/get_all_completed_items?token=%s&limit=%s&offset=%s' % (secrets.TODOIST_AUTH_TOKEN, limit, offset)
+    result = requests.get(url).json()
+    return result['items']
+
+def get_tasks_date_range(start, end, limit=50):
+    url = 'https://todoist.com/API/v6/get_all_completed_items?token=%s&from_date=%sT07:00&to_date=%sT07:00&limit=%s' % (secrets.TODOIST_AUTH_TOKEN, start, end, limit)
+    result = requests.get(url).json()
+    return result['items']
+
 def get_tasks_completed_today():
     today = date.today()
     tomorrow = today + timedelta(days=1)
-    url = 'https://todoist.com/API/v6/get_all_completed_items?token=%s&to_date=%sT07:00&from_date=%sT07:00&limit=50' % (secrets.TODOIST_AUTH_TOKEN, today, tomorrow)
-    result = requests.get(url).json()
-    return result['items']
+    return get_tasks_date_range(today, tomorrow)
 
 @module.route('/today')
 @module.route('/today/')
@@ -99,6 +111,9 @@ def create_dashboard_item_for_query(tasks_completed, query, title=None):
         'color': '#CAE2B0' if complete else '#FFCC80'
     }
 
+def first_where(tasks, query):
+    return next((s for s in tasks if s['content'] == query), False)
+
 @module.route('/today/query/dashboard')
 @module.route('/today/query/dashboard/')
 @require_secret
@@ -113,4 +128,26 @@ def query_completed_tasks_dashboard():
             query = query_parts[0]
             title = query_parts[1]
         items.append(create_dashboard_item_for_query(tasks_completed, query, title=title))
+    return dashboard_item(items)
+
+@module.route('/since/dashboard')
+@module.route('/since/dashboard/')
+def query_since_completion():
+    queries = request.args.getlist('query')
+    tasks = get_completed()
+    print tasks
+    items = []
+    for query in queries:
+        title = None
+        if '--' in query:
+            query_parts = query.split('--')
+            query = query_parts[0]
+            title = query_parts[1]
+        task = first_where(tasks, query)
+        body = arrow.get(task['completed_date'], 'ddd DD MMM YYYY HH:mm:ss Z').humanize() if task else 'Not found'
+        items.append({
+            'title': title if title else query,
+            'body': body,
+            'color': '#CAE2B0' if task else '#FFCC80'
+        })
     return dashboard_item(items)
