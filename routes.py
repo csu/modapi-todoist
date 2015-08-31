@@ -135,7 +135,6 @@ def query_completed_tasks_dashboard():
 def query_since_completion():
     queries = request.args.getlist('query')
     tasks = get_completed()
-    print tasks
     items = []
     for query in queries:
         title = None
