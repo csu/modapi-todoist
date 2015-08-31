@@ -147,6 +147,6 @@ def query_since_completion():
         items.append({
             'title': title if title else query,
             'body': body,
-            'color': '#CAE2B0' if task else '#FFCC80'
+            'color': 'papayawhip' if task else '#EBAD99'
         })
     return dashboard_item(items)
