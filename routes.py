@@ -15,6 +15,40 @@ def merge_dicts(x, y):
     z.update(y)
     return z
 
+def get_number_tasks_completed_today():
+    url = 'http://api.todoist.com/API/getProductivityStats?token=%s' % secrets.TODOIST_AUTH_TOKEN
+    result = requests.get(url).json()
+    return result['days_items'][0]['total_completed']
+
+def get_completed(limit=50, offset=0):
+    url = 'https://todoist.com/API/v6/get_all_completed_items?token=%s&limit=%s&offset=%s' % (secrets.TODOIST_AUTH_TOKEN, limit, offset)
+    result = requests.get(url).json()
+    return result['items']
+
+def get_tasks_date_range(start, end=None, limit=None):
+    url = 'https://todoist.com/API/v6/get_all_completed_items?token=%s&to_date=%sT07:00' % (secrets.TODOIST_AUTH_TOKEN, start)
+    if end:
+        url += '&from_date=%sT07:00' % end
+    if limit:
+        url += '&limit=%s' % limit
+    result = requests.get(url).json()
+    return result['items']
+
+def get_tasks_completed_today():
+    today = date.today()
+    return get_tasks_date_range(today)
+
+def create_dashboard_item_for_query(tasks_completed, query, title=None):
+    complete = any(s['content'] == query for s in tasks_completed)
+    return {
+        'title': title if title else query,
+        'body': 'Complete' if complete else 'Incomplete',
+        'color': '#CAE2B0' if complete else '#FFCC80'
+    }
+
+def first_where(tasks, query):
+    return next((s for s in tasks if s['content'] == query), False)
+
 @module.route('/backup')
 @module.route('/backup/')
 @require_secret
@@ -44,11 +78,6 @@ def backup_completed_tasks():
         'projects': len(projects)
     })
 
-def get_number_tasks_completed_today():
-    url = 'http://api.todoist.com/API/getProductivityStats?token=%s' % secrets.TODOIST_AUTH_TOKEN
-    result = requests.get(url).json()
-    return result['days_items'][0]['total_completed']
-
 @module.route('/today/dashboard')
 @module.route('/today/dashboard/')
 @require_secret
@@ -68,21 +97,6 @@ def tasks_completed_today_dashboard():
         'color': color
     }]})
 
-def get_completed(limit=50, offset=0):
-    url = 'https://todoist.com/API/v6/get_all_completed_items?token=%s&limit=%s&offset=%s' % (secrets.TODOIST_AUTH_TOKEN, limit, offset)
-    result = requests.get(url).json()
-    return result['items']
-
-def get_tasks_date_range(start, end, limit=50):
-    url = 'https://todoist.com/API/v6/get_all_completed_items?token=%s&from_date=%sT07:00&to_date=%sT07:00&limit=%s' % (secrets.TODOIST_AUTH_TOKEN, start, end, limit)
-    result = requests.get(url).json()
-    return result['items']
-
-def get_tasks_completed_today():
-    today = date.today()
-    tomorrow = today + timedelta(days=1)
-    return get_tasks_date_range(today, tomorrow)
-
 @module.route('/today')
 @module.route('/today/')
 @require_secret
@@ -92,27 +106,6 @@ def tasks_completed_today_route():
         'count': len(tasks_completed),
         'items': tasks_completed
     })
-
-@module.route('/today/query')
-@module.route('/today/query/')
-@require_secret
-def query_completed_tasks():
-    query = request.args.get('query')
-    return jsonify({
-        'query': query,
-        'result': query_today_compelted(query)
-    })
-
-def create_dashboard_item_for_query(tasks_completed, query, title=None):
-    complete = any(s['content'] == query for s in tasks_completed)
-    return {
-        'title': title if title else query,
-        'body': 'Complete' if complete else 'Incomplete',
-        'color': '#CAE2B0' if complete else '#FFCC80'
-    }
-
-def first_where(tasks, query):
-    return next((s for s in tasks if s['content'] == query), False)
 
 @module.route('/today/query/dashboard')
 @module.route('/today/query/dashboard/')
