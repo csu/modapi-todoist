@@ -1,5 +1,6 @@
-import secrets
 import requests
+
+import secrets
 
 def merge_dicts(x, y):
     z = x.copy()
