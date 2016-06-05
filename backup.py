@@ -32,3 +32,7 @@ def backup_completed_tasks(uploader):
         'items': len(items),
         'projects': len(projects)
     }
+
+if __name__ == '__main__':
+    from ...uploader import gdrive
+    backup_completed_tasks(gdrive.GDriveUploader())
